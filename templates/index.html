@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Sentiment Analyzer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background-color: #f4f6f9;
+      font-family: "Poppins", sans-serif;
+      color: #333;
+    }
+
+    .navbar {
+      background-color: #0d6efd;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .navbar-brand {
+      color: #fff !important;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .main-container {
+      max-width: 1000px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    h2.section-title {
+      font-weight: 600;
+      color: #0d6efd;
+      border-left: 4px solid #0d6efd;
+      padding-left: 10px;
+      margin-top: 40px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      border: none;
+      border-radius: 14px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .input-group input {
+      padding: 12px;
+      border-radius: 30px 0 0 30px;
+    }
+
+    .input-group button {
+      border-radius: 0 30px 30px 0;
+      padding: 12px 20px;
+    }
+
+    .comment-card {
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .positive { background-color: #d1f7d6; }
+    .negative { background-color: #f8d7da; }
+    .neutral  { background-color: #fff3cd; }
+
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      padding: 10px;
+      color: #6c757d;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand" href="#">YouTube Sentiment Analyzer</a>
+    </div>
+  </nav>
+
+  <!-- Main Section -->
+  <div class="container main-container">
+    <div class="text-center mb-4">
+      <h3 class="fw-bold text-primary">Analyze YouTube Video Comments</h3>
+      <p class="text-muted">Enter a video URL to get a quick sentiment breakdown of its comments.</p>
+    </div>
+
+    <form method="POST" class="mb-4">
+      <div class="input-group shadow-sm">
+        <input type="text" name="video_url" class="form-control" placeholder="Paste YouTube video URL..." required>
+        <button type="submit" class="btn btn-primary">Analyze</button>
+      </div>
+    </form>
+
+    {% if error %}
+      <div class="alert alert-danger text-center shadow-sm">{{ error }}</div>
+    {% endif %}
+
+    {% if dashboard %}
+    <!-- Statistics Section -->
+    <h2 class="section-title">Dashboard Summary</h2>
+    <div class="row text-center mb-4">
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card bg-primary text-white">
+          <div class="card-body">
+            <h6>Total</h6>
+            <h3>{{ dashboard.total }}</h3>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card bg-success text-white">
+          <div class="card-body">
+            <h6>Positive</h6>
+            <h3>{{ dashboard.positive_count }}</h3>
+            <small>{{ (dashboard.positive_count / dashboard.total * 100) | round(1) }}%</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card bg-danger text-white">
+          <div class="card-body">
+            <h6>Negative</h6>
+            <h3>{{ dashboard.negative_count }}</h3>
+            <small>{{ (dashboard.negative_count / dashboard.total * 100) | round(1) }}%</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card bg-warning text-dark">
+          <div class="card-body">
+            <h6>Neutral</h6>
+            <h3>{{ dashboard.neutral_count }}</h3>
+            <small>{{ (dashboard.neutral_count / dashboard.total * 100) | round(1) }}%</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comments Section -->
+    <h2 class="section-title">Comments Overview</h2>
+    <div class="accordion" id="commentsAccordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button bg-success-subtle" type="button" data-bs-toggle="collapse" data-bs-target="#positiveComments">
+            Positive Comments
+          </button>
+        </h2>
+        <div id="positiveComments" class="accordion-collapse collapse show" data-bs-parent="#commentsAccordion">
+          <div class="accordion-body">
+            {% for c, s in dashboard.positive %}
+              <div class="comment-card positive">{{ c }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button bg-danger-subtle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#negativeComments">
+            Negative Comments
+          </button>
+        </h2>
+        <div id="negativeComments" class="accordion-collapse collapse" data-bs-parent="#commentsAccordion">
+          <div class="accordion-body">
+            {% for c, s in dashboard.negative %}
+              <div class="comment-card negative">{{ c }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button bg-warning-subtle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#neutralComments">
+            Neutral Comments
+          </button>
+        </h2>
+        <div id="neutralComments" class="accordion-collapse collapse" data-bs-parent="#commentsAccordion">
+          <div class="accordion-body">
+            {% for c, s in dashboard.neutral %}
+              <div class="comment-card neutral">{{ c }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <footer>© 2025 YouTube Sentiment Analyzer | Designed by Aniket</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
